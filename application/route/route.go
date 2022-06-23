@@ -2,15 +2,21 @@ package route
 
 
 type Route struct {
-
-	ID string
-	ClientID string
-	Positions []Position
+	ID 			string 		`json:"routeId"`
+	ClientID 	string 		`json:"clientId"`
+	Positions   []Position	`json:"positions"`
 }
 
 type Position struct {
-	Lat float64
-	Long float64
+	Lat float64		`json:"lat"`
+	Long float64	`json:"long"`
+}
+
+type PartialRoutePosition struct {
+	ID 			string    `json:"routeId"`
+	ClientID 	string    `json:"clientId"`	
+	Positions   []float64 `json:"position"`
+	Finished	bool	  `json:"finished"`
 }
 
 func(r *Route) LoadPositions() error{
@@ -19,7 +25,7 @@ func(r *Route) LoadPositions() error{
 		return errors.New("Route ID is empty")
 	}
 
-	f, err := os.Open("/data/routes/" + r.ID + ".txt")
+	f, err := os.Open("destinations/" + r.ID + ".txt")
 	if err != nil {
 		return err
 	}
@@ -28,6 +34,7 @@ func(r *Route) LoadPositions() error{
 
 	for scanner.Scan() {
 		data := strings.Split(scanner.Text(), ",")
+
 		lat, err := strconv.ParseFloat(data[0],64)
 		if err != nil{
 			return nil
@@ -46,5 +53,30 @@ func(r *Route) LoadPositions() error{
 	}
 
 	return nil;
+}
 
+func (r *Route) ExportJsonPositions() ([]string,error) {
+	var route PartialRoutePosition
+	var result []string
+	total := len(r.Positions)
+
+	for k,v := range r.Positions {
+		route.ID = r.ID
+		route.ClientID = r.ClientID
+		route.Positions = []float64{v.Lat,v.Long}
+		route.Finished = false
+		if total-1 == k {
+			route.Finished = true
+		}
+
+		json, err := json.Marshal(route)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result,string(json))
+	 
+	}
+
+	return result, nil
 }
